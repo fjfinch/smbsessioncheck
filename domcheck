@@ -1,104 +1,139 @@
 #!/usr/bin/env python3
 
-# Everyone
-#	Authenticated users
-#	Anonymous
+'''
+HKLM\System\CurrentControlSet\Control\Lsa\RestrictAnonymous		1 - Null sessions can not be used to enumerate shares
+HKLM\System\CurrentControlSet\Control\Lsa\RestrictAnonymousSAM		1 - (Default) Null sessions can not enumerate user names
+HKLM\System\CurrentControlSet\Control\Lsa\EveryoneIncludesAnonymous	0 - (Default) Null sessions have no special rights
 
-# --NULL
-# ANONYMOUS LOGON (user)
-# Everyone, NETWORK (group)
+enable - Network access: Do not allow anonymous enumeration of SAM accounts
+enable - Network access: Do not allow anonymous enumeration of SAM accounts and shares
+disable - Network access: Let Everyone permissions apply to anonymous users
 
-# --Guest
-# Guest (user)
-	# set password
-	# no password (any will auth)
-# Everyone, NETWORK, Guests (group)
+enable - Network access: Restrict Anonymous access to Named Pipes and Shares	| except listed in the NullSessionPipes and NullSessionShares registry entries
+disable - Network access: Allow anonymous SID/Name translation
 
+enable - Network access: Shares that can be accessed anonymously
+disable - Restrict Null Sessions in the Registry
 
+shares RestrictNullSessAccess with the value 1 to the registry key HKLM\System\CurrentControlSet\Services\LanManServer\Parameters.
 
-# Read Only IPC$ -> enumerate usernames. impacket-lookupsid - cme --rid-brute
-# lsarpc -> impacket-lookupsid - cme --rid-brute
+Default Domain Controllers policy
+Default Domain Policy
+Local Security Policy
 
-# shares?
+registry vs group policy
+'''
 
 import sys
-from impacket.smbconnection import SMBConnection
-import os
+from impacket import nt_errors
+from impacket.smbconnection import SMBConnection, SessionError
+from impacket.dcerpc.v5.transport import SMBTransport
+from impacket.dcerpc.v5 import lsat, lsad, rpcrt
+
+if len(sys.argv) != 2:
+	print(f"Use: python3 {sys.argv[0]} <IP>")
+	sys.exit(1)
 
 BOLD = '\033[1;31m'
 RESET = '\033[0m'
-#DUCK = "DOYOULIKEDUCKS"
-DUCK = "Guest"
-
-if len(sys.argv) != 2:
-	print(f"{BOLD}Use: python3 {sys.argv[0]} <IP>{RESET}")
-	exit()
+TARGET = sys.argv[1]
 
 is_null = False
+is_null_cread = False
 is_guest = False
+is_guest_cread = False
 
-# Connection_1
+# NULL -------
+username = ""
+password = ""
+
 try:
-	conn = SMBConnection(DUCK, sys.argv[1])
+	conn = SMBConnection(TARGET, TARGET)
 except OSError:
 	print(f"{BOLD}Connection error{RESET}")
-	exit()
-out = 0
+	sys.exit(1)
 
-# NULL
 try:
-	conn.login("", "")
+	conn.login(username, password)
+
 	try:
 		tree_id = conn.connectTree("IPC$")
-		conn.openFile(tree_id, "srvsvc")
+		file_id = conn.openFile(tree_id, "srvsvc")
 		is_null = True
-	except:
-		pass
-except:
-	pass
+		conn.closeFile(tree_id, file_id)
+	except SessionError as e:
+		if e.getErrorCode() == nt_errors.STATUS_ACCESS_DENIED:
+			conn.disconnectTree(tree_id)
 
-print(f"NetBIOS domain name:\t{BOLD}{conn.getServerDomain()}{RESET}")
-print(f"DNS domain name:\t{BOLD}{conn.getServerDNSDomainName()}{RESET}\n")
-print(f"NetBIOS computer name:\t{BOLD}{conn.getServerName()}{RESET}")
-print(f"FQDN or DNS host name:\t{BOLD}{conn.getServerDNSHostName()}{RESET}\n")
-
-conn.close()
-
-# Connection_2
-try:
-	conn = SMBConnection(DUCK, sys.argv[1])
-except OSError:
-	print(f"{BOLD}Connection error{RESET}")
-	exit()
-
-# GUEST
-try:
-	conn.login(DUCK, "")
 	try:
-		if os.system(f"rpcclient -U '{DUCK}%' {sys.argv[1]} -c 'lookupnames {DUCK}' >/dev/null") == 0:
-			is_guest = True
-	except:
+		conn.listPath("C$", "\*")
+		is_null_cread = True
+	except SessionError as e:
+		if e.getErrorCode() == nt_errors.STATUS_USER_SESSION_DELETED:
+			pass
+except SessionError as e:
+	if e.getErrorCode() == nt_errors.STATUS_LOGON_FAILURE:
 		pass
-#	if conn.isGuestSession() and out == 0:
-#		is_guest = True
-except:
-	pass
+finally:
+	host_netbios = conn.getServerName() if conn.getServerName().rstrip('\x00') else "-"
+	domain_netbios = conn.getServerDomain() if conn.getServerDomain().rstrip('\x00') else "-"
+	host_dns = conn.getServerDNSHostName() if conn.getServerDNSHostName().rstrip('\x00') else "-"
+	domain_dns = conn.getServerDNSDomainName() if conn.getServerDomain().rstrip('\x00') else "-"
 
 conn.close()
 
-# --------
+# GUEST ------
+username = "Guest"
+password = ""
 
-null = "Null session:\t\t"
+try:
+	conn = SMBTransport(TARGET, filename = "lsarpc", username = username, password = password)
+	dce = conn.get_dce_rpc()
+	dce.connect()
+
+	try:
+		dce.bind(lsat.MSRPC_UUID_LSAT)
+		resp = lsad.hLsarOpenPolicy2(dce, lsad.POLICY_LOOKUP_NAMES)
+		policyHandle = resp['PolicyHandle']
+		lsat.hLsarLookupNames2(dce, policyHandle, (username,))
+		is_guest = True
+	except:
+		pass
+
+	try:
+		s = conn.get_smb_connection()
+		s.listPath("C$", "\*")
+		is_guest_cread = True
+	except SessionError as e:
+		if e.getErrorCode() == nt_errors.STATUS_USER_SESSION_DELETED:
+			pass
+
+	dce.disconnect()
+except SessionError as e:
+	if e.getErrorCode() == nt_errors.STATUS_ACCESS_DENIED:
+		pass
+
+# OUTPUT -----
+print(f"NetBIOS computer name:\t: {BOLD}{host_netbios}{RESET}")
+print(f"NetBIOS domain name:\t: {BOLD}{domain_netbios}{RESET}")
+print(f"DNS host name:\t\t: {BOLD}{host_dns.split('.')[0]}{RESET}")
+print(f"DNS domain name:\t: {BOLD}{domain_dns}{RESET}")
+print()
+
 if is_null:
-	print(f"{null}{BOLD}YES{RESET}")
+	print(f"Null session:\t\t: {BOLD}YES (shares | enum4linux){RESET}")
+	if is_null_cread:
+		print("C$ READ")
 else:
-	print(f"{null}No")
+	print(f"Null session:\t\t: No")
 
-guest = "Guest logon:\t\t"
 if is_guest:
-	print(f"{guest}{BOLD}YES{RESET}")
+	print(f"Guest logon:\t\t: {BOLD}YES (shares | impacket-lookupsid | cme --rid-brute | enum4linux){RESET}")
+	if is_guest_cread:
+		print("C$ READ")
 else:
-	print(f"{guest}No")
+	print(f"Guest logon:\t\t: No")
+
 
 
 
@@ -108,20 +143,18 @@ try:
 	tree_id = conn.connectTree("IPC$")
 	conn.openFile(tree_id, "srvsvc")
 	shares = conn.listShares()
-	is_null = True
 except:
 	pass
 
-
-cread = "C$ read:\t\t"
-try:
-	tree_id = conn.connectTree("C$")
-	print(f"{cread}{BOLD}YES - SID bruteforce{RESET}")
-except:
-	print(f"{cread}no")
-
-
 def list_shares(shares):
-        for share in range(len(shares)):
-                print(" --",shares[share]['shi1_netname'][:-1])
+	for share in range(len(shares)):
+		print(" --",shares[share]['shi1_netname'][:-1])
+
+domainSid = resp['ReferencedDomains']['Domains'][0]['Sid'].formatCanonical()
+
+try:
+	test = conn.listPath("IPC$", "\*")
+	is_null_read = True
+except:
+	pass
 '''
