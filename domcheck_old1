@@ -1,26 +1,5 @@
 #!/usr/bin/env python3
 
-# Everyone
-#	Authenticated users
-#	Anonymous
-
-# --NULL
-# ANONYMOUS LOGON (user)
-# Everyone, NETWORK (group)
-
-# --Guest
-# Guest (user)
-	# set password
-	# no password (any will auth)
-# Everyone, NETWORK, Guests (group)
-
-
-
-# Read Only IPC$ -> enumerate usernames. impacket-lookupsid - cme --rid-brute
-# lsarpc -> impacket-lookupsid - cme --rid-brute
-
-# shares?
-
 import sys
 from impacket.smbconnection import SMBConnection
 import os

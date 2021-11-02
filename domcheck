@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 
 '''
+--TODO--
+shares
+password policy
+groups
+users
+
 HKLM\System\CurrentControlSet\Control\Lsa\RestrictAnonymous		1 - Null sessions can not be used to enumerate shares
 HKLM\System\CurrentControlSet\Control\Lsa\RestrictAnonymousSAM		1 - (Default) Null sessions can not enumerate user names
 HKLM\System\CurrentControlSet\Control\Lsa\EveryoneIncludesAnonymous	0 - (Default) Null sessions have no special rights
@@ -22,6 +28,21 @@ Default Domain Policy
 Local Security Policy
 
 registry vs group policy
+
+
+# Everyone
+#       Authenticated users
+#       Anonymous
+
+# --NULL
+# ANONYMOUS LOGON (user)
+# Everyone, NETWORK (group)
+
+# --Guest
+# Guest (user)
+        # set password
+        # no password (any will auth)
+# Everyone, NETWORK, Guests (group)
 '''
 
 import sys
@@ -79,7 +100,6 @@ finally:
 	domain_netbios = conn.getServerDomain() if conn.getServerDomain().rstrip('\x00') else "-"
 	host_dns = conn.getServerDNSHostName() if conn.getServerDNSHostName().rstrip('\x00') else "-"
 	domain_dns = conn.getServerDNSDomainName() if conn.getServerDomain().rstrip('\x00') else "-"
-
 conn.close()
 
 # GUEST ------
@@ -114,27 +134,27 @@ except SessionError as e:
 		pass
 
 # OUTPUT -----
-print(f"NetBIOS computer name:\t: {BOLD}{host_netbios}{RESET}")
-print(f"NetBIOS domain name:\t: {BOLD}{domain_netbios}{RESET}")
-print(f"DNS host name:\t\t: {BOLD}{host_dns.split('.')[0]}{RESET}")
-print(f"DNS domain name:\t: {BOLD}{domain_dns}{RESET}")
+print(f"NetBIOS computer name\t: {BOLD}{host_netbios}{RESET}")
+print(f"NetBIOS domain name\t: {BOLD}{domain_netbios}{RESET}")
+print(f"DNS host name\t\t: {BOLD}{host_dns.split('.')[0]}{RESET}")
+print(f"DNS domain name\t\t: {BOLD}{domain_dns}{RESET}")
 print()
 
 if is_null:
-	print(f"Null session:\t\t: {BOLD}YES (shares | enum4linux){RESET}")
+	print(f"Null session\t\t: {BOLD}YES (shares | enum4linux){RESET}")
+#	print("\t\t\t\tLSA: enum4linux")
 	if is_null_cread:
 		print("C$ READ")
 else:
 	print(f"Null session:\t\t: No")
 
 if is_guest:
-	print(f"Guest logon:\t\t: {BOLD}YES (shares | impacket-lookupsid | cme --rid-brute | enum4linux){RESET}")
+	print(f"Guest logon\t\t: {BOLD}YES (shares | impacket-lookupsid | cme --rid-brute | enum4linux){RESET}")
+#	print("\t\t\t\tLSA: impacket-lookupsid | cme --rid-brute | enum4linux")
 	if is_guest_cread:
 		print("C$ READ")
 else:
-	print(f"Guest logon:\t\t: No")
-
-
+	print(f"Guest logon\t\t: No")
 
 
 
@@ -151,10 +171,4 @@ def list_shares(shares):
 		print(" --",shares[share]['shi1_netname'][:-1])
 
 domainSid = resp['ReferencedDomains']['Domains'][0]['Sid'].formatCanonical()
-
-try:
-	test = conn.listPath("IPC$", "\*")
-	is_null_read = True
-except:
-	pass
 '''
