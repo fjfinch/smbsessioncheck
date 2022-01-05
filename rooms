@@ -29,7 +29,7 @@ cme-users
 	-
 	-
 
---NULL						lookupsid	cme-rid-brute	enum4linux	samrdump	rpcclient	cme-users	cme---pass-pol	getdompwinfo&getusrdompwinfo
+--NULL						lookupsid	cme-rid-brute	enum4linux	samrdump	rpcclient	cme-users
 Motunui			WS	IPC$		x		x		o		x		x x		x
 Basic Pentesting	WS	IPC$		x		x		o		x		x x		x
 VulnNet: Internal	WS	IPC$		x		x		o		x		x x		x
@@ -49,8 +49,76 @@ VulnNet: Roasted	AD	IPC$ r	C$	o		o		o		x		x x		x
 Enterprise		AD	IPC$ r	C$	o		o		o		x		x x		x
 OPSEC                   AD	IPC$ r	C$	o		o		o		x		x x		x
 
-lookupsid & cme-rid-brute not null (but did guest)
-samrdum & rpcclient some (null & guest)
+
+w/null cant use guest account
+w/null can use LSARPC
+w/null can use SAMR
+w/null can use SAMR w/user_enum
+
+w/guest cant use null session (EXCEPT IN DOMAIN)
+w/guest can use LSARPC
+w/guest can use SAMR (EXCEPT IN DOMAIN)
+w/guest can use SAMR w/user_enum
+
+--NULL
+LSARPC
+	NULL
+		lsaquery
+		enumprivs
+		lsaenumsid
+		lsaquerysecobj
+		getusername
+		dsroledominfo
+	GUEST
+		-
+SAMR
+	NULL
+		querydominfo
+		enumdomains
+		samquerysecobj
+		getdompwinfo
+		querydispinfo (SAMR user enum)
+		querydispinfo2 (SAMR user enum)
+		querydispinfo3 (SAMR user enum)
+		enumdomusers (SAMR user enum)
+	GUEST
+		-
+
+--GUEST
+LSARPC
+	NULL
+		NONE (ws)
+
+		lsaquery (domain)
+		enumtrust (domain - sometimes)
+		enumprivs (domain)
+		lsaquerysecobj (domain - sometimes)
+		getusername (domain)
+		dsroledominfo (domain)
+	GUEST
+		lsaquery
+		enumtrust (domain - sometimes)
+		enumprivs
+		lsaenumsid
+		lsaquerysecobj
+		getusername
+		dsroledominfo
+SAMR
+	NULL
+		-
+	GUEST
+		NONE (domain)
+
+		querydominfo
+		enumdomains
+		samquerysecobj
+		enumdomgroups
+		getdompwinfo
+		querydispinfo (SAMR user enum)
+		querydispinfo2 (SAMR user enum)
+		querydispinfo3 (SAMR user enum)
+		enumdomusers (SAMR user enum)
+
 
 
 SAMR enumeration
@@ -59,3 +127,36 @@ SAMR enumeration
 LSA bruteforcing
         anonymously                             Windows 2000
         lower-level account (users,guest)       Windows XP and higher
+
+
+--TODO--
+HKLM\System\CurrentControlSet\Control\Lsa\RestrictAnonymous             1 - Null sessions can not be used to en>
+HKLM\System\CurrentControlSet\Control\Lsa\RestrictAnonymousSAM          1 - (Default) Null sessions can not enu>
+HKLM\System\CurrentControlSet\Control\Lsa\EveryoneIncludesAnonymous     0 - (Default) Null sessions have no spe>
+
+enable - Network access: Do not allow anonymous enumeration of SAM accounts
+enable - Network access: Do not allow anonymous enumeration of SAM accounts and shares
+disable - Network access: Let Everyone permissions apply to anonymous users
+
+enable - Network access: Restrict Anonymous access to Named Pipes and Shares    | except listed in the NullSess>
+disable - Network access: Allow anonymous SID/Name translation
+
+enable - Network access: Shares that can be accessed anonymously
+disable - Restrict Null Sessions in the Registry
+
+shares RestrictNullSessAccess with the value 1 to the registry key HKLM\System\CurrentControlSet\Services\LanMa>
+
+
+# Everyones
+#       Authenticated users
+#       Anonymous
+
+# --NULL
+# ANONYMOUS LOGON (user)
+# Everyone, NETWORK (group)
+
+# --Guest
+# Guest (user)
+        # set password
+        # no password (any will auth)
+# Everyone, NETWORK, Guests (group)

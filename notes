@@ -1,0 +1,63 @@
+Home				CANT JOIN DOMAIN or USE GPE
+Pro/Enterprise/Education	CAN JOIN DOMAIN or USE GPE
+
+gpedit.msc	(Local) Group Policy Editor		Global
+secpol.msc	Local Security Policy (Editor)		Local - brother of GPE
+
+---------------------------------
+
+# Enable Guest
+## Advanced Sharing
+Control Panel\Network and Internet\Network and Sharing Center\Advanced sharing settings
+Network discovery:              disable->enable (enables port discovery)
+File and printer sharing:       disable->enable (enables pinging)
+
+## Enable SMB
+Create file and share it
+
+--Windows 8.1, Windows Server 2012, Windows Server 2012 R2, Windows 10, and Windows Server 2019
+Get-SmbServerConfiguration | Select EnableSMB1Protocol
+Set-SmbServerConfiguration -EnableSMB1Protocol $false
+Set-SmbServerConfiguration -EnableSMB1Protocol $true
+
+Get-SmbServerConfiguration | Select EnableSMB2Protocol
+Set-SmbServerConfiguration -EnableSMB2Protocol $false
+Set-SmbServerConfiguration -EnableSMB2Protocol $true
+
+--Windows 7, Windows Server 2008 R2, Windows Vista, and Windows Server 2008
+Get-Item HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters | ForEach-Object {Get-ItemProperty $_.pspath}
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" SMB1 -Type DWORD -Value 0 -Force
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" SMB1 -Type DWORD -Value 1 -Force
+
+Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters | ForEach-Object {Get-ItemProperty $_.pspath}
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" SMB2 -Type DWORD -Value 0 -Force
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" SMB2 -Type DWORD -Value 1 -Force
+
+--Registry Editor
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters
+
+Registry entry: SMB1
+REG_DWORD: 0 = Disabled
+REG_DWORD: 1 = Enabled
+Default: 1 = Enabled (No registry key is created)
+
+Registry entry: SMB2
+REG_DWORD: 0 = Disabled
+REG_DWORD: 1 = Enabled
+Default: 1 = Enabled (No registry key is created)
+
+## Enable Guest Authentication
+--Before Windows 10
+Control Panel\User Accounts and Family Safety\User Accounts\Manage Accounts
+enable Guest account
+
+--Windows 10+
+net user guest /active:yes
+
+## Remove Guest from 'deny access from - policy'
+LSP -> Local Policy -> User Right Assignment -> 'Deny access to this computer from the network'
+Remove Guest
+
+## SAMR ENUMERATION
+LSP -> Local Policy -> Security Options -> 'Network access: Do not allow anonymous enumeration of SAM accounts'
+Enabled to Disabled
