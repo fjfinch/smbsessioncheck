@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 
-# SMB SessionError: STATUS_LOGON_TYPE_NOT_GRANTED
-#	URA - Deny access to this computer from the network: Guest
-
 import sys
 from impacket import nt_errors
 from impacket.smbconnection import SMBConnection, SessionError
 from impacket.dcerpc.v5.transport import SMBTransport
-from impacket.dcerpc.v5.lsat import DCERPCSessionError, MSRPC_UUID_LSAT, hLsarLookupNames2
+from impacket.dcerpc.v5.lsat import DCERPCSessionError, MSRPC_UUID_LSAT, hLsarLookupNames2 #, hLsarLookupSids2
 from impacket.dcerpc.v5.lsad import hLsarOpenPolicy2, POLICY_LOOKUP_NAMES
 #from impacket.dcerpc.v5.samr import DCERPCSessionError, MSRPC_UUID_SAMR, hSamrConnect, hSamrEnumerateDomainsInSamServer, hSamrLookupDomainInSamServer, hSamrOpenDomain, hSamrEnumerateUsersInDomain
 
@@ -80,10 +77,17 @@ try:
 		resp = hLsarOpenPolicy2(dce, POLICY_LOOKUP_NAMES)
 		policyHandle = resp['PolicyHandle']
 		hLsarLookupNames2(dce, policyHandle, (username,))
+		#resp = hLsarLookupNames2(dce, policyHandle, ('Administrator',))
+		#domainSid = resp['ReferencedDomains']['Domains'][0]['Sid'].formatCanonical()
+		#resp = hLsarLookupSids2(dce, policyHandle, (domainSid+'-501',))
 		is_guest = True
 	except DCERPCSessionError as e:
 		if e.error_code == nt_errors.STATUS_NONE_MAPPED:
-			pass
+			#print(f"{ERROR}'Accounts: Rename guest account' might has been used and/or null session is active{RESET}")
+			if not is_null:
+				print(f"{ERROR}Policy 'Accounts: Rename guest account' changed{RESET}")
+			else:
+				print(f"{ERROR}Policy 'Accounts: Rename guest account' might changed and/or null session is active{RESET}")
 		else:
 			print(f"{ERROR}1 GUEST:{RESET}", e)
 	dce.disconnect()
@@ -92,10 +96,9 @@ except OSError:
 	sys.exit(1)
 except SessionError as e:
 	if e.getErrorCode() == nt_errors.STATUS_ACCOUNT_DISABLED:
-		print("Guest account disabled")
-		#pass
+		print(f"{ERROR}Policy 'Accounts: Guest account status' disabled{RESET}")
 	elif e.getErrorCode() == nt_errors.STATUS_LOGON_TYPE_NOT_GRANTED:
-		print("URA: Deny access to this computer from the network: Guest")
+		print(f"{ERROR}Policy 'Deny access to this computer from the network' includes Guest{RESET}")
 	else:
 		print(f"{ERROR}2 GUEST:{RESET}", e)
 
