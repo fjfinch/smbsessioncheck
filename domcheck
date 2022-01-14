@@ -4,9 +4,8 @@ import sys
 from impacket import nt_errors
 from impacket.smbconnection import SMBConnection, SessionError
 from impacket.dcerpc.v5.transport import SMBTransport
-from impacket.dcerpc.v5.lsat import DCERPCSessionError, MSRPC_UUID_LSAT, hLsarLookupNames2 #, hLsarLookupSids2
+from impacket.dcerpc.v5.lsat import DCERPCSessionError, MSRPC_UUID_LSAT, hLsarGetUserName #, hLsarLookupNames2, hLsarLookupSids2
 from impacket.dcerpc.v5.lsad import hLsarOpenPolicy2, POLICY_LOOKUP_NAMES
-#from impacket.dcerpc.v5.samr import DCERPCSessionError, MSRPC_UUID_SAMR, hSamrConnect, hSamrEnumerateDomainsInSamServer, hSamrLookupDomainInSamServer, hSamrOpenDomain, hSamrEnumerateUsersInDomain
 
 if len(sys.argv) != 2:
 	print(f"Usage: {sys.argv[0]} <IP>")
@@ -20,8 +19,8 @@ TARGET = sys.argv[1]
 is_null = False
 is_guest = False
 
-'''
 # NULL -------
+#can fail with a lot.
 username = ""
 password = ""
 
@@ -36,7 +35,7 @@ try:
 	try:
 		tree_id = conn.connectTree("IPC$")
 		try:
-			file_id = conn.openFile(tree_id, "srvsvc")
+			file_id = conn.openFile(tree_id, "lsarpc") #srvsvc lsarpc samr
 			is_null = True
 			conn.closeFile(tree_id, file_id)
 		except SessionError as e:
@@ -55,15 +54,14 @@ except SessionError as e:
 finally:
 	host_netbios = conn.getServerName() if conn.getServerName().rstrip('\x00') else "-"
 	domain_netbios = conn.getServerDomain() if conn.getServerDomain().rstrip('\x00') else "-"
-	#host_dns = conn.getServerDNSHostName() if conn.getServerDNSHostName().rstrip('\x00') else "-"
 	host_dns = conn.getServerDNSHostName().split('.')[0] if conn.getServerDNSHostName().rstrip('\x00') else "-"
 	domain_dns = conn.getServerDNSDomainName() if conn.getServerDomain().rstrip('\x00') else "-"
 	is_signing = conn.isSigningRequired()
 
 conn.close()
-'''
 
 # GUEST -----
+#can fail with 1) different language 'Anonymous Logon', 2) active guest and rename guest account + some policy
 username = "Guest"
 password = ""
 
@@ -74,43 +72,34 @@ try:
 	dce.connect()
 	try:
 		dce.bind(MSRPC_UUID_LSAT)
-		resp = hLsarOpenPolicy2(dce, POLICY_LOOKUP_NAMES)
-		policyHandle = resp['PolicyHandle']
-		hLsarLookupNames2(dce, policyHandle, (username,))
-		#resp = hLsarLookupNames2(dce, policyHandle, ('Administrator',))
-		#domainSid = resp['ReferencedDomains']['Domains'][0]['Sid'].formatCanonical()
-		#resp = hLsarLookupSids2(dce, policyHandle, (domainSid+'-501',))
-		is_guest = True
+		resp = hLsarGetUserName(dce)
+		if resp['UserName'] != 'Anonymous Logon':
+			is_guest = True
 	except DCERPCSessionError as e:
-		if e.error_code == nt_errors.STATUS_NONE_MAPPED:
-			#print(f"{ERROR}'Accounts: Rename guest account' might has been used and/or null session is active{RESET}")
-			if not is_null:
-				print(f"{ERROR}Policy 'Accounts: Rename guest account' changed{RESET}")
-			else:
-				print(f"{ERROR}Policy 'Accounts: Rename guest account' might changed and/or null session is active{RESET}")
-		else:
-			print(f"{ERROR}1 GUEST:{RESET}", e)
+		print(f"{ERROR}1 GUEST:{RESET}", e)
 	dce.disconnect()
 except OSError:
 	print(f"{ERROR}Connection error{RESET}")
 	sys.exit(1)
 except SessionError as e:
 	if e.getErrorCode() == nt_errors.STATUS_ACCOUNT_DISABLED:
-		print(f"{ERROR}Policy 'Accounts: Guest account status' disabled{RESET}")
+		error = f"{ERROR}| Disabled policy (Accounts: Guest account status){RESET}"
 	elif e.getErrorCode() == nt_errors.STATUS_LOGON_TYPE_NOT_GRANTED:
-		print(f"{ERROR}Policy 'Deny access to this computer from the network' includes Guest{RESET}")
+		error = f"{ERROR}| Guest in policy (Deny access to this computer from the network)${RESET}"
+	elif e.getErrorCode() == nt_errors.STATUS_LOGON_FAILURE:
+		error = f"{ERROR}| Guest account needs password || guest disabled and account name changed{RESET}"
 	else:
 		print(f"{ERROR}2 GUEST:{RESET}", e)
 
 # OUTPUT -------
-#print(f"NetBIOS computer name\t: {RED}{host_netbios}{RESET}")
-#print(f"NetBIOS domain name\t: {RED}{domain_netbios}{RESET}")
-#print(f"DNS host name\t\t: {RED}{host_dns}{RESET}")
-#print(f"DNS domain name\t\t: {RED}{domain_dns}{RESET}")
-#print()
+print(f"NetBIOS computer name\t: {RED}{host_netbios}{RESET}")
+print(f"NetBIOS domain name\t: {RED}{domain_netbios}{RESET}")
+print(f"DNS host name\t\t: {RED}{host_dns}{RESET}")
+print(f"DNS domain name\t\t: {RED}{domain_dns}{RESET}")
+print()
 
-#print("SMB signing\t\t:", "YES" if is_signing else "NO")
-#print()
+print("SMB signing\t\t:", "YES" if is_signing else "NO")
+print()
 
-#print("Null session\t\t:", f"{RED}YES{RESET}" if is_null else "NO")
-print("Guest logon\t\t:", f"{RED}YES{RESET}" if is_guest else "NO")
+print("Null session\t\t:", f"{RED}YES{RESET}" if is_null else "NO")
+print("Guest logon\t\t:", f"{RED}YES{RESET}" if is_guest else f"NO {error}")

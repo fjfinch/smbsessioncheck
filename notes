@@ -6,13 +6,7 @@ secpol.msc	Local Security Policy (Editor)		Local - brother of GPE
 
 ---------------------------------
 
-STATUS_ACCOUNT_DISABLED
-	STATUS_LOGON_TYPE_NOT_GRANTED
-
----------------------------------
-
-# ENABLE GUEST
-## Enable discovery
+## Enable file and printer sharing
 Control Panel\Network and Internet\Network and Sharing Center\Advanced sharing settings
 Network discovery:              disable->enable (enables port discovery)
 File and printer sharing:       disable->enable (enables pinging)
@@ -53,10 +47,50 @@ File and printer sharing:       disable->enable (enables pinging)
 
 ## Enable Guest account
 LSP -> Security Settings -> Local Policy -> Security Options -> Accounts: Guest account status | Disabled -> Enabled
-net user guest
 
 ## Remove Guest from 'deny access from - policy'
 LSP -> Security Settings -> Local Policy -> User Right Assignment -> Deny access to this computer from the network | Remove Guest
 
 ## SAMR ENUMERATION
 LSP -> Security Settings -> Local Policy -> Security Options -> Network access: Do not allow anonymous enumeration of SAM accounts | Enabled -> Disabled
+
+
+-----------------------------
+
+# shares
+tree_id = conn.connectTree("IPC$")
+conn.openFile(tree_id, "srvsvc")
+shares = conn.listShares()
+def list_shares(shares):
+        for share in range(len(shares)):
+                print(" --",shares[share]['shi1_netname'][:-1])
+
+# read C$
+conn.listPath("C$", "\*")
+
+# transport.SMBTransport -> SMBConnection.connection
+conn = SMBTransport(TARGET, filename="lsarpc", username=username, password=password)
+dce = conn.get_dce_rpc()
+dce.connect()
+conn = conn.get_smb_connection()
+
+# SMBConnection.connection -> transport.SMBTransport
+conn = SMBConnection(TARGET, TARGET)
+conn.login(username, password)
+conn = SMBTransport(TARGET, filename="samr", smb_connection=conn)
+dce = conn.get_dce_rpc()
+
+# is the same
+conn = SMBTransport(TARGET, filename="samr", username=username, password=password)
+dce = conn.get_dce_rpc()
+dce.connect()
+
+conn = SMBConnection(TARGET, TARGET)
+conn.login(username, password)
+tree_id = conn.connectTree("IPC$")
+file_id = conn.openFile(tree_id, "samr")
+
+# guest
+resp = hLsarOpenPolicy2(dce, POLICY_LOOKUP_NAMES)
+policyHandle = resp['PolicyHandle']
+hLsarLookupNames2(dce, policyHandle, (username,))

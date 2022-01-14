@@ -127,36 +127,3 @@ SAMR enumeration
 LSA bruteforcing
         anonymously                             Windows 2000
         lower-level account (users,guest)       Windows XP and higher
-
-
---TODO--
-HKLM\System\CurrentControlSet\Control\Lsa\RestrictAnonymous             1 - Null sessions can not be used to en>
-HKLM\System\CurrentControlSet\Control\Lsa\RestrictAnonymousSAM          1 - (Default) Null sessions can not enu>
-HKLM\System\CurrentControlSet\Control\Lsa\EveryoneIncludesAnonymous     0 - (Default) Null sessions have no spe>
-
-enable - Network access: Do not allow anonymous enumeration of SAM accounts
-enable - Network access: Do not allow anonymous enumeration of SAM accounts and shares
-disable - Network access: Let Everyone permissions apply to anonymous users
-
-enable - Network access: Restrict Anonymous access to Named Pipes and Shares    | except listed in the NullSess>
-disable - Network access: Allow anonymous SID/Name translation
-
-enable - Network access: Shares that can be accessed anonymously
-disable - Restrict Null Sessions in the Registry
-
-shares RestrictNullSessAccess with the value 1 to the registry key HKLM\System\CurrentControlSet\Services\LanMa>
-
-
-# Everyones
-#       Authenticated users
-#       Anonymous
-
-# --NULL
-# ANONYMOUS LOGON (user)
-# Everyone, NETWORK (group)
-
-# --Guest
-# Guest (user)
-        # set password
-        # no password (any will auth)
-# Everyone, NETWORK, Guests (group)
