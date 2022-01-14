@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
+# can't ping the box?
+# then probably 'File and printer sharing' is disabled
+# and you also cant use this script
+
 import sys
 from impacket import nt_errors
 from impacket.smbconnection import SMBConnection, SessionError
 from impacket.dcerpc.v5.transport import SMBTransport
-from impacket.dcerpc.v5.lsat import DCERPCSessionError, MSRPC_UUID_LSAT, hLsarGetUserName #, hLsarLookupNames2, hLsarLookupSids2
-from impacket.dcerpc.v5.lsad import hLsarOpenPolicy2, POLICY_LOOKUP_NAMES
+from impacket.dcerpc.v5.lsat import DCERPCSessionError, MSRPC_UUID_LSAT, hLsarGetUserName
 
 if len(sys.argv) != 2:
 	print(f"Usage: {sys.argv[0]} <IP>")
@@ -25,7 +28,7 @@ username = ""
 password = ""
 
 try:
-	conn = SMBConnection("DUCK", TARGET)
+	conn = SMBConnection(TARGET, TARGET)
 except OSError:
 	print(f"{ERROR}Connection error{RESET}")
 	sys.exit(1)
@@ -85,9 +88,9 @@ except SessionError as e:
 	if e.getErrorCode() == nt_errors.STATUS_ACCOUNT_DISABLED:
 		error = f"{ERROR}| Disabled policy (Accounts: Guest account status){RESET}"
 	elif e.getErrorCode() == nt_errors.STATUS_LOGON_TYPE_NOT_GRANTED:
-		error = f"{ERROR}| Guest in policy (Deny access to this computer from the network)${RESET}"
+		error = f"{ERROR}| Guest in policy (Deny access to this computer from the network){RESET}"
 	elif e.getErrorCode() == nt_errors.STATUS_LOGON_FAILURE:
-		error = f"{ERROR}| Guest account needs password || guest disabled and account name changed{RESET}"
+		error = f"{ERROR}| Guest account needs password OR guest disabled and account name changed{RESET}"
 	else:
 		print(f"{ERROR}2 GUEST:{RESET}", e)
 
@@ -98,8 +101,8 @@ print(f"DNS host name\t\t: {RED}{host_dns}{RESET}")
 print(f"DNS domain name\t\t: {RED}{domain_dns}{RESET}")
 print()
 
-print("SMB signing\t\t:", "YES" if is_signing else "NO")
-print()
+#print("SMB signing\t\t:", "YES" if is_signing else "NO")
+#print()
 
 print("Null session\t\t:", f"{RED}YES{RESET}" if is_null else "NO")
 print("Guest logon\t\t:", f"{RED}YES{RESET}" if is_guest else f"NO {error}")
