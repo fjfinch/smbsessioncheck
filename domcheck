@@ -16,14 +16,17 @@ if len(sys.argv) != 2:
 
 RED = '\033[1;31m'
 ERROR = '\033[0;31m'
+ERROR_ITALIC = '\033[3;31m'
 RESET = '\033[0m'
+
 TARGET = sys.argv[1]
 
 is_null = False
 is_guest = False
+error = ""
 
 # NULL -------
-#can fail with a lot.
+# can fail with a lot.
 username = ""
 password = ""
 
@@ -45,26 +48,27 @@ try:
 			if e.getErrorCode() == nt_errors.STATUS_ACCESS_DENIED:
 				pass
 			else:
-				print(f"{ERROR}1 NULL:{RESET}", e)
+				print(f"{ERROR}1 NULL: {e}{RESET}")
 		conn.disconnectTree(tree_id)
 	except Exception as e:
-		print(f"{ERROR}2 NULL:{RESET}", e)
+		print(f"{ERROR}2 NULL: {e}{RESET}")
 except SessionError as e:
 	if e.getErrorCode() == nt_errors.STATUS_ACCESS_DENIED:
 		pass
 	else:
-		print(f"{ERROR}3 NULL:{RESET}", e)
+		print(f"{ERROR}3 NULL: {e}{RESET}")
 finally:
 	host_netbios = conn.getServerName() if conn.getServerName().rstrip('\x00') else "-"
 	domain_netbios = conn.getServerDomain() if conn.getServerDomain().rstrip('\x00') else "-"
 	host_dns = conn.getServerDNSHostName().split('.')[0] if conn.getServerDNSHostName().rstrip('\x00') else "-"
 	domain_dns = conn.getServerDNSDomainName() if conn.getServerDomain().rstrip('\x00') else "-"
-	is_signing = conn.isSigningRequired()
 
 conn.close()
 
 # GUEST -----
-#can fail with 1) different language 'Anonymous Logon', 2) active guest and rename guest account + some policy
+# can fail with:
+# 1) different language 'Anonymous Logon'
+# 2) active guest and rename guest account + some policy
 username = "Guest"
 password = ""
 
@@ -79,20 +83,23 @@ try:
 		if resp['UserName'] != 'Anonymous Logon':
 			is_guest = True
 	except DCERPCSessionError as e:
-		print(f"{ERROR}1 GUEST:{RESET}", e)
+		print(f"{ERROR}1 GUEST: {e}{RESET}")
 	dce.disconnect()
 except OSError:
 	print(f"{ERROR}Connection error{RESET}")
 	sys.exit(1)
 except SessionError as e:
 	if e.getErrorCode() == nt_errors.STATUS_ACCOUNT_DISABLED:
-		error = f"{ERROR}| Disabled policy (Accounts: Guest account status){RESET}"
+		#error = f"{ERROR}(Policy: {ERROR_ITALIC}Accounts: Guest account status{ERROR}){RESET}"
+		pass
 	elif e.getErrorCode() == nt_errors.STATUS_LOGON_TYPE_NOT_GRANTED:
-		error = f"{ERROR}| Guest in policy (Deny access to this computer from the network){RESET}"
+		#error = f"{ERROR}(Policy: {ERROR_ITALIC}Deny access to this computer from the network{ERROR}){RESET}"
+		pass
 	elif e.getErrorCode() == nt_errors.STATUS_LOGON_FAILURE:
-		error = f"{ERROR}| Guest account needs password OR guest disabled and account name changed{RESET}"
+		#error = f"{ERROR}(Guest account needs password OR guest disabled and account name changed{RESET}"
+		pass
 	else:
-		print(f"{ERROR}2 GUEST:{RESET}", e)
+		print(f"{ERROR}2 GUEST: {e}{RESET}")
 
 # OUTPUT -------
 print(f"NetBIOS computer name\t: {RED}{host_netbios}{RESET}")
@@ -100,9 +107,5 @@ print(f"NetBIOS domain name\t: {RED}{domain_netbios}{RESET}")
 print(f"DNS host name\t\t: {RED}{host_dns}{RESET}")
 print(f"DNS domain name\t\t: {RED}{domain_dns}{RESET}")
 print()
-
-#print("SMB signing\t\t:", "YES" if is_signing else "NO")
-#print()
-
 print("Null session\t\t:", f"{RED}YES{RESET}" if is_null else "NO")
 print("Guest logon\t\t:", f"{RED}YES{RESET}" if is_guest else f"NO {error}")
