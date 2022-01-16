@@ -63,3 +63,7 @@ file_id = conn.openFile(tree_id, "samr")
 resp = hLsarOpenPolicy2(dce, POLICY_LOOKUP_NAMES)
 policyHandle = resp['PolicyHandle']
 hLsarLookupNames2(dce, policyHandle, (username,))
+
+# SMB signing
+is_signing = conn.isSigningRequired()
+print("SMB signing\t\t:", "YES" if is_signing else "NO")
