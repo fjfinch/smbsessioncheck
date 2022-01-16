@@ -30,14 +30,14 @@ cme-users
 	-
 
 --NULL						lookupsid	cme-rid-brute	enum4linux	samrdump	rpcclient	cme-users
-Motunui			WS	IPC$		x		x		o		x		x x		x
-Basic Pentesting	WS	IPC$		x		x		o		x		x x		x
-VulnNet: Internal	WS	IPC$		x		x		o		x		x x		x
-Kenobi			WS	IPC$		x		x		o		x		x x		x
-Blog			WS	IPC$		x		x		o		x		x x		x
-Network Services	WS	IPC$		x		x		o		x		x x		x
-NerdHerd		WS	IPC$		x		x		o		o		o o		x
-Skynet			WS	IPC$		x		x		o		o		o o		x
+Motunui			Li	IPC$		x		x		o		x		x x		x
+Basic Pentesting	Li	IPC$		x		x		o		x		x x		x
+VulnNet: Internal	Li	IPC$		x		x		o		x		x x		x
+Kenobi			Li	IPC$		x		x		o		x		x x		x
+Blog			Li	IPC$		x		x		o		x		x x		x
+Network Services	Li	IPC$		x		x		o		x		x x		x
+NerdHerd		Li	IPC$		x		x		o		o		o o		x
+Skynet			Li	IPC$		x		x		o		o		o o		x
 
 --GUEST
 Blueprint		WS	IPC$	C$	o		o		o		o		o o		x
@@ -47,6 +47,7 @@ AllSignsPoint2Pwnage	WS	IPC$ r	C$	o		o		o		x		x x		x
 USTOUN			AD	IPC$ r	C$	o		o		o		x		x x		x
 VulnNet: Roasted	AD	IPC$ r	C$	o		o		o		x		x x		x
 Enterprise		AD	IPC$ r	C$	o		o		o		x		x x		x
+
 OPSEC                   AD	IPC$ r	C$	o		o		o		x		x x		x
 
 
@@ -118,12 +119,3 @@ SAMR
 		querydispinfo2 (SAMR user enum)
 		querydispinfo3 (SAMR user enum)
 		enumdomusers (SAMR user enum)
-
-
-
-SAMR enumeration
-        anonymously                             Windows 2000
-        user account (user)                     Windows versions > 2000
-LSA bruteforcing
-        anonymously                             Windows 2000
-        lower-level account (users,guest)       Windows XP and higher
