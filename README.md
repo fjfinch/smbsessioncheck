@@ -17,6 +17,18 @@ This script requires an IP address as input:
 python3 domcheck <IP>
 ```
 
+Output:
+
+```
+NetBIOS computer name	: FINCH-PC
+NetBIOS domain name	: -
+DNS host name		: finch-PC
+DNS domain name		: -
+
+Null session		: NO
+Guest logon		: YES
+```
+
 ## ToDo
 * Output what registries/policies/smb.conf have been set to disable null/guest
 * Guest check can fail with a different language (ex. the string 'Anonymous Logon' can be different)
