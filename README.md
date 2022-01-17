@@ -1,5 +1,5 @@
 # domcheck
-Small python script that checks for null session and guest account on a Windows machine. It uses the SMB protocol. (Can also enumerate Linux via Samba).
+Small python script that checks for null session and guest account on a Windows machine. It uses the SMB protocol for enumerating. (Can also enumerate Linux via Samba).
 
 Note for Windows: can't ping the box? Then probably 'File and printer sharing' is disabled and you can't use this script.
 
