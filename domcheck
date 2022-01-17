@@ -19,7 +19,7 @@ TARGET = sys.argv[1]
 
 is_null = False
 is_guest = False
-error = ""
+#error = ""
 
 # NULL -------
 username = ""
