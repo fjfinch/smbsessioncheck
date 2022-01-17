@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-# can't ping the box?
-# then probably 'File and printer sharing' is disabled
-# and you also cant use this script
-
 import sys
 from impacket import nt_errors
 from impacket.smbconnection import SMBConnection, SessionError
@@ -26,7 +22,6 @@ is_guest = False
 error = ""
 
 # NULL -------
-# can fail with a lot.
 username = ""
 password = ""
 
@@ -66,9 +61,6 @@ finally:
 conn.close()
 
 # GUEST -----
-# can fail with:
-# 1) different language 'Anonymous Logon'
-# 2) active guest and rename guest account + some policy
 username = "Guest"
 password = ""
 
