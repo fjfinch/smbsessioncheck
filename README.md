@@ -4,7 +4,7 @@ Small python script that checks for null session and guest account on a Windows 
 Note for Windows: can't ping the box? Then probably 'File and printer sharing' is disabled and you can't use this script.
 
 ## Install dependencies
-It uses the impacket libraries to connect to a machine:
+It uses the impacket library to connect to a remote machine:
 
 ```
 apt install python3-impacket
