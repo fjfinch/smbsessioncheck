@@ -36,7 +36,7 @@ try:
 	try:
 		tree_id = conn.connectTree("IPC$")
 		try:
-			file_id = conn.openFile(tree_id, "lsarpc") #srvsvc lsarpc samr
+			file_id = conn.openFile(tree_id, "srvsvc") #srvsvc samr
 			is_null = True
 			conn.closeFile(tree_id, file_id)
 		except SessionError as e:
