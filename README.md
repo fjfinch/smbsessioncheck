@@ -6,14 +6,20 @@ Note for Windows: can't ping the box? Then probably 'File and printer sharing' i
 ## Install dependencies
 It uses the impacket library to connect to a remote machine:
 
+```bash
+pip install impacket
 ```
+
+or
+
+```bash
 apt install python3-impacket
 ```
 
 ## Run
 This script requires an IP address as input:
 
-```
+```bash
 python3 smbsessioncheck <IP>
 ```
 
