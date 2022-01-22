@@ -1,4 +1,4 @@
-# domcheck
+# smbsessioncheck
 Small python script that checks for null session and guest account on a Windows machine. It uses the SMB protocol for enumerating. (Can also enumerate Linux via Samba).
 
 Note for Windows: can't ping the box? Then probably 'File and printer sharing' is disabled on the machine and you can't use this script.
@@ -14,7 +14,7 @@ apt install python3-impacket
 This script requires an IP address as input:
 
 ```
-python3 domcheck <IP>
+python3 smbsessioncheck <IP>
 ```
 
 Output:
