@@ -1,5 +1,5 @@
 # smbsessioncheck
-Small python script that checks for null session and guest account on a Windows machine. It uses the SMB protocol for enumerating. (Can also enumerate Linux via Samba).
+Small python script that checks for a null session and an active guest account on a Windows machine. Great for initial enumeration without using a password. It uses the SMB protocol with RPC for enumerating the machine. (Can also enumerate Linux through Samba).
 
 Note for Windows: can't ping the box? Then probably 'File and printer sharing' is disabled on the machine and you can't use this script.
 
